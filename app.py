@@ -56,20 +56,15 @@ Each question must be returned as a JSON object with the following format:
 
         result = response.json()
         answer_text = result["choices"][0]["message"]["content"].strip()
-
+        dum_check = result["choices"][0]["message"]["content"]
+        print('AI response \n', dum_check)
+        
         # Try parsing the content into valid JSON
         questions = json.loads(answer_text)
         return jsonify(questions)
 
     except Exception as e:
-        # fallback ডামি প্রশ্ন
-        dummy_question = [{
-            "question": "What is the capital of France?",
-            "options": ["Berlin", "London", "Paris", "Rome"],
-            "answer": "Paris",
-            "explanation": "Paris is the capital and most populous city of France."
-        }]
-        return jsonify(dummy_question)
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

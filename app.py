@@ -1,17 +1,8 @@
 from flask import Flask, request, jsonify
-from fastapi.middleware.cors import CORSMiddleware
 import openai
 import os
 
 app = Flask(__name__)
-
-# CORS configuration (optional but useful)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # OpenAI or OpenRouter API key
 openai.api_key = os.getenv("API_KEY")  # or set manually here

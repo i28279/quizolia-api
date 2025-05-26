@@ -1,10 +1,11 @@
+import os
 from flask import Flask, request, jsonify
 import requests
 
 app = Flask(__name__)
 
 openrouter_api_url = "https://openrouter.ai/api/v1/chat/completions"
-api_key = "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"  # নিজের key বসা
+api_key = os.getenv("API_KEY")  # নিজের key বসা
 
 @app.route("/generate-quiz", methods=["POST"])
 def generate_quiz():

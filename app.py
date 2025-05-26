@@ -1,9 +1,9 @@
-from fastapi import FastAPI, Request
+from flask import Flask, request, jsonify
 from fastapi.middleware.cors import CORSMiddleware
 import openai
 import os
 
-app = FastAPI()
+app = Flask(__name__)
 
 # CORS configuration (optional but useful)
 app.add_middleware(

@@ -1,46 +1,59 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import requests
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+import openai
+import os
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
 
-openrouter_api_url = "https://openrouter.ai/api/v1/chat/completions"
-api_key = "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"
+# CORS configuration (optional but useful)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.route("/generate-quiz", methods=["POST"])
-def generate_quiz():
-    data = request.json
-    book = data.get("book")
-    chapter = data.get("chapter")
+# OpenAI or OpenRouter API key
+openai.api_key = os.getenv("API_KEY")  # or set manually here
+
+@app.post("/generate-quiz")
+async def generate_quiz(request: Request):
+    data = await request.json()
     topic = data.get("topic")
-    count = data.get("count")
-    options = data.get("options")
+    chapter = data.get("chapter")
+    book = data.get("book")
+    count = data.get("count", 5)
+    options = data.get("options", 4)
 
-    prompt = f"Generate {count} multiple choice questions (with {options} options) on the topic '{topic}' under '{chapter}' in '{book}'. Provide correct answer and short explanation for each. Format as JSON with fields: question, options, answer, explanation."
+    prompt = f"""
+Generate {count} multiple choice questions (with {options} options each) on the topic '{topic}' under the chapter '{chapter}' in the book '{book}'.
 
-    response = requests.post(
-        openrouter_api_url,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}"
-        },
-        json={
-            "model": "openchat/openchat-3.5-1210",
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.7,
-            "max_tokens": 1500
-        }
-    )
+Each question must include the following fields and be returned in this **exact JSON format**:
+[
+  {{
+    "question": "Write the question here",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "answer": "Correct Option",
+    "explanation": "Short explanation of the correct answer"
+  }},
+  ...
+]
+
+Only return a valid JSON array of question objects. Do not include any text before or after the JSON array.
+    """
 
     try:
-        result = response.json()
-        answer_text = result["choices"][0]["message"]["content"]
-        return jsonify({"result": answer_text})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        response = openai.ChatCompletion.create(
+            model="openai/gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that creates multiple choice quizzes in JSON format."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+        )
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3000)
+        result = response["choices"][0]["message"]["content"].strip()
+        return {"quiz": result}  # frontend should parse result as JSON
+
+    except Exception as e:
+        return {"error": str(e)}

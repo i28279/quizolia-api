@@ -10,6 +10,14 @@ CORS(app)
 openrouter_api_url = "https://openrouter.ai/api/v1/chat/completions"
 api_key = os.getenv("API_KEY")  # .env থেকে নিবে। চাইলে সরাসরি লিখে রাখতে পারিস
 
+
+def extract_json_block(text):
+    start = text.find('[')
+    end = text.rfind(']')
+    if start != -1 and end != -1 and end > start:
+        return text[start:end+1]
+    return None
+
 @app.route("/generate-quiz", methods=["POST"])
 def generate_quiz():
     data = request.json
@@ -56,12 +64,15 @@ Each question must be returned as a JSON object with the following format:
 
         result = response.json()
         answer_text = result["choices"][0]["message"]["content"].strip()
-        dum_check = result["choices"][0]["message"]["content"]
-        print('AI response \n', dum_check)
-        
-        # Try parsing the content into valid JSON
-        questions = json.loads(answer_text)
-        return jsonify(questions)
+        print('AI response \n', answer_text)
+
+        json_only = extract_json_block(answer_text)
+
+        if json_only:
+            questions = json.loads(json_only)
+            return jsonify(questions)
+        else:
+            return jsonify({"error": "Valid JSON block not found in response."})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -1,12 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import requests
+import os
 
 app = Flask(__name__)
 CORS(app)
 
 openrouter_api_url = "https://openrouter.ai/api/v1/chat/completions"
-api_key = "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"
+api_key = os.getenv("API_KEY")
 
 @app.route("/generate-quiz", methods=["POST"])
 def generate_quiz():
@@ -17,8 +17,27 @@ def generate_quiz():
     count = data.get("count")
     options = data.get("options")
 
-    prompt = f"Generate {count} multiple choice questions (with {options} options) on the topic '{topic}' under '{chapter}' in '{book}'. Provide correct answer and short explanation for each. Format as JSON with fields: question, options, answer, explanation."
+    prompt = f"""
+Generate {count} multiple choice questions (with {options} options each) on the topic '{topic}' under '{chapter}' in '{book}'. 
+For each question, provide exactly these fields in JSON format:
+- question: string
+- options: array of strings
+- answer: string (one of the options)
+- explanation: string
 
+Return ONLY a valid JSON array of these question objects, without any extra text.
+Example:
+[
+  {{
+    "question": "...",
+    "options": ["...", "...", "...", "..."],
+    "answer": "...",
+    "explanation": "..."
+  }},
+  ...
+]
+"""
+    
     response = requests.post(
         openrouter_api_url,
         headers={
